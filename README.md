@@ -1,56 +1,39 @@
-import React, { createContext } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { ToastActionElement } from '@/components/ui/toast';
-import { ExternalToast, toast as snackbar } from 'sonner';
-import { Toaster } from '@/components/ui/toaster';
-import { Toaster as Snackbar } from '@/components/ui/sonner';
+import { Button } from '@salesforce/design-system-react';
+import { GridApi } from 'ag-grid-community';
  
-// Create a context
-const AppSnackbarContext = createContext({
-  showToast: (options: { title?: string; description?: string; action?: ToastActionElement | undefined }) => {},
-  showSnackbar: (title: string, options?: ExternalToast) => {},
-});
+import { FilterX, Fullscreen } from 'lucide-react';
  
-// Create a provider
-export function AppSnackbarProvider({ children }: { children: React.ReactNode }) {
-  const { toast } = useToast();
- 
-  const context = {
-    showToast: (options: { title?: string; description?: string; action?: ToastActionElement | undefined }) => {
-      toast({
-        title: options?.title,
-        description: options?.description,
-        duration: 5000,
-        variant: 'default',
-        action: options.action,
-      });
-    },
-    showSnackbar: (title: string, options?: ExternalToast) => {
-      snackbar(title, {
-        ...options,
-        duration: options?.duration ?? 5000,
-        position: 'bottom-center',
-        closeButton: true,
-      });
-    },
-  };
- 
+const ToolbarOptions = ({ gridApi }: { gridApi?: GridApi }) => {
   return (
-    <AppSnackbarContext.Provider value={context}>
-      <>
-        {children}
-        <Toaster />
-        <Snackbar position="bottom-center" />
-      </>
-    </AppSnackbarContext.Provider>
-  );
-}
+    <div className="flex items-center gap-3 me-2">
+      <Button
+        onClick={() => gridApi?.refreshServerSide({ purge: true })}
+        iconCategory="utility"
+        iconName="refresh"
+        iconVariant="bare"
+        variant="icon"
+        title="Refresh"
+      />
  
-// Create a hook that uses the context
-export function useSnackbar() {
-  const context = React.useContext(AppSnackbarContext);
-  if (context === undefined) {
-    throw new Error('useSnackbar must be used within a SnackbarProvider');
-  }
-  return context;
-}
+      <Button
+        onClick={() => gridApi?.setFilterModel(null)}
+        iconVariant="bare"
+        variant="icon"
+        title="Clear Filters"
+      >
+        <FilterX size={18} />
+      </Button>
+ 
+      <Button
+        onClick={() => gridApi?.sizeColumnsToFit()}
+        iconVariant="bare"
+        variant="icon"
+        title="Size Columns To Fit"
+      >
+        <Fullscreen size={18} />
+      </Button>
+    </div>
+  );
+};
+ 
+export default ToolbarOptions;
