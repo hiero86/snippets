@@ -1,3 +1,5 @@
+0 2px 4px -1px #0003, 0 4px 5px #00000024, 0 1px 10px #0000001f;
+
 'use client';
 import { styled, Theme, CSSObject } from '@mui/material/styles';
 import Drawer from '@mui/material/Drawer';
