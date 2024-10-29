@@ -1,58 +1,34 @@
-import React, { useState } from "react";
-import { Tabs, Tab, Box } from "@mui/material";
-import { motion } from "framer-motion";
+using System.Security.Cryptography.X509Certificates;
 
-const tabsData = ["Tab 1", "Tab 2", "Tab 3", "Tab 4"];
+var builder = WebApplication.CreateBuilder(args);
 
-const TabComponent = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [prevIndex, setPrevIndex] = useState(0);
+// Get base64-encoded secrets from environment variables
+var certBase64 = Environment.GetEnvironmentVariable("CERT_BASE64");
+var keyBase64 = Environment.GetEnvironmentVariable("KEY_BASE64");
 
-  const handleChange = (event, newIndex) => {
-    setPrevIndex(currentIndex);
-    setCurrentIndex(newIndex);
-  };
+// Decode the base64 strings
+var certBytes = Convert.FromBase64String(certBase64);
+var keyBytes = Convert.FromBase64String(keyBase64);
 
-  // Determine direction of slide animation
-  const direction = currentIndex > prevIndex ? 1 : -1;
+// Create the certificate from the cert and key bytes
+var certificate = X509Certificate2.CreateFromPem(new ReadOnlySpan<byte>(certBytes), new ReadOnlySpan<byte>(keyBytes));
 
-  return (
-    <Box sx={{ width: "100%" }}>
-      <Tabs value={currentIndex} onChange={handleChange}>
-        {tabsData.map((tab, index) => (
-          <Tab key={index} label={tab} />
-        ))}
-      </Tabs>
+// Configure Kestrel
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(5000); // HTTP
+    serverOptions.ListenAnyIP(5001, listenOptions =>
+    {
+        listenOptions.UseHttps(certificate); // HTTPS with retrieved certificate
+    });
+});
 
-      <Box sx={{ position: "relative", overflow: "hidden", height: "200px" }}>
-        <motion.div
-          key={currentIndex}
-          initial={{ x: direction * 100 + "%", opacity: 0 }}
-          animate={{ x: "0%", opacity: 1 }}
-          exit={{ x: direction * -100 + "%", opacity: 0 }}
-          transition={{ type: "tween", duration: 0.5 }}
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-          }}
-        >
-          <Box
-            sx={{
-              padding: 2,
-              background: "#f0f0f0",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100%",
-            }}
-          >
-            {tabsData[currentIndex]} Content
-          </Box>
-        </motion.div>
-      </Box>
-    </Box>
-  );
-};
+var app = builder.Build();
 
-export default TabComponent;
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
