@@ -1,34 +1,29 @@
-using System.Security.Cryptography.X509Certificates;
+name: Deploy to AKS
 
-var builder = WebApplication.CreateBuilder(args);
+on:
+  push:
+    branches:
+      - main
 
-// Get base64-encoded secrets from environment variables
-var certBase64 = Environment.GetEnvironmentVariable("CERT_BASE64");
-var keyBase64 = Environment.GetEnvironmentVariable("KEY_BASE64");
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-// Decode the base64 strings
-var certBytes = Convert.FromBase64String(certBase64);
-var keyBytes = Convert.FromBase64String(keyBase64);
+      - name: Set up Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-// Create the certificate from the cert and key bytes
-var certificate = X509Certificate2.CreateFromPem(new ReadOnlySpan<byte>(certBytes), new ReadOnlySpan<byte>(keyBytes));
+      - name: AKS Get Credentials
+        run: |
+          az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }}
 
-// Configure Kestrel
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ListenAnyIP(5000); // HTTP
-    serverOptions.ListenAnyIP(5001, listenOptions =>
-    {
-        listenOptions.UseHttps(certificate); // HTTPS with retrieved certificate
-    });
-});
-
-var app = builder.Build();
-
-app.UseHttpsRedirection();
-app.UseRouting();
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+      - name: Create Kubernetes secret with PFX file
+        env:
+          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+        run: |
+          echo "$PFX_BASE64" | base64 -d > certificate.pfx
+          kubectl create secret generic my-pfx-secret --from-file=certificate.pfx
