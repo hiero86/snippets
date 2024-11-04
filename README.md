@@ -28,6 +28,7 @@ jobs:
           echo "$PFX_BASE64" | base64 -d > certificate.pfx
           kubectl create secret generic my-pfx-secret --from-file=certificate.pfx
 
+
 name: Deploy to AKS
 
 on:
@@ -52,8 +53,5 @@ jobs:
           az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }}
 
       - name: Create Kubernetes secret with PFX file
-        env:
-          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
         run: |
-          echo "$PFX_BASE64" | base64 -d > certificate.pfx
-          kubectl create secret generic my-pfx-secret --from-file=certificate.pfx
+          kubectl create secret generic my-pfx-secret --from-file=certificate.pfx=resources/your-certificate.pfx
